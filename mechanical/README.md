@@ -1,4 +1,4 @@
-![IMG_3558](https://github.com/user-attachments/assets/a1b65a0f-94b5-415b-8a0a-f3c5614c0b3a)![IMG_3522](https://github.com/user-attachments/assets/c27ce32a-5718-488b-846e-b375d6d19868)![IMG_3661](https://github.com/user-attachments/assets/9e2dde5f-5920-4bd0-ba55-453e02cc6fcc)# Mechanical Subsystem — Screen Tester Machine  
+# Mechanical Subsystem — Screen Tester Machine  
 
 ## 1. Introduction
 
@@ -7,7 +7,6 @@ The mechanical subsystem implements the physical interaction layer of the Screen
 ## 2. Overall Assembly
 
 ![Figure 1: Complete mechanical assembly showing frame, motion stages, touch head interface, and integration points with electrical and actuation subsystems.](./images/IMG_3661.jpeg)
-
 
 *Figure 1* presents the full assembly. The design integrates actuation (from the electrical subsystem), sensing, and the user-contact interface (touch head) into a coherent structure. Key sub-assemblies include the motion positioning stage, the mount for the touch head, compliant interface elements, and the structural frame that ensures repeatability and rigidity under load.
 
