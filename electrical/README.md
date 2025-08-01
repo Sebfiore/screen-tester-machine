@@ -18,7 +18,7 @@ Control logic, signal multiplexing, and sequencing are consolidated on the custo
 
 ## 3. Embedded Visual Reference
 
-![Figure 1: Electrical subsystem layout including the two TB6600 stepper drivers (bottom left), the custom LPC1768 control board (bottom right), power distribution, and endstop multiplexing.](./IMG_3673.jpeg)
+![Figure 1: Electrical subsystem layout including the two TB6600 stepper drivers (bottom left), the custom LPC1768 control board (bottom right), power distribution, and endstop multiplexing.](./images/IMG_3673.jpeg)
 
 *Figure 1* shows the physical arrangement of key electrical components and provides contextual insight into signal flow, power routing, and subsystem placement.
 
@@ -60,3 +60,4 @@ The electrical subsystem employs distinct voltage domains to meet component requ
 - **24V Domain:** Powers the LPC1768-based control board and the touchscreen under test.  
 - **12V Domain:** Supplies the solenoid actuator.  
 - **5V Domain:** Supplies logic levels for the TB6600 driver inputs and any ancillary digital circuits.  
+
