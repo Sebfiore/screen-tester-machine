@@ -53,3 +53,22 @@ dkms.conf
 
 # debug information files
 *.dwo
+
+# Ignore system files
+.DS_Store
+
+# Ignore everything by default in application
+software/application/*
+software/application/include/*
+
+# But include only the selected .c files
+!software/application/routine_helpers_library.c
+!software/application/stepper_speed_timer.c
+!software/application/stepper_library.c
+!software/application/screen_tester_routine.c
+
+# And only the selected .h files
+!software/application/include/routine_helpers_library.h
+!software/application/include/stepper_speed_timer.h
+!software/application/include/stepper_library.h
+!software/application/include/screen_tester_routine.h
