@@ -1,7 +1,7 @@
 #ifndef STEPPER_SPEED_TIMER_H
 #define STEPPER_SPEED_TIMER_H
 
-/* Header del microcontrollore */
+/* MCU headers */
 #include "LPC17xx.h"
 #include "lpc17xx_adc.h"
 #include "lpc17xx_clkpwr.h"
@@ -16,13 +16,13 @@
 #include "lpc17xx_wdt.h"
 #include "debug_frmwrk.h"
 
-/* Header del sistema operativo */
+/* FreeRTOS headers */
 #include "FreeRTOS.h"
 #include "croutine.h"
 #include "queue.h"
 #include "task.h"
 
-/* Header dell'applicazione */
+/* Application headers */
 #include "printf.h"
 #include "ad.h"
 #include "eeprom_internal.h"
@@ -31,11 +31,12 @@
 #include "can_task.h"
 #include "svnrev.h"
 
-/*screen tester includes*/
+/* Screen tester includes */
 #include "stepper_library.h"
 #include "stepper_speed_lib.h"
 #include "screen_tester_routine.h"
 
+/* Stepper motor control pin definitions */
 #define X_PORT      1
 #define Y_PORT      1
 #define X_DIR_PIN   (1<<28)
@@ -43,16 +44,20 @@
 #define X_PULSE_PIN (1<<29)
 #define Y_PULSE_PIN (1<<25)
 
-#define STEPS_PER_ROTATION 800      //sono i microstep impostati
+/* Motor configuration */
+#define STEPS_PER_ROTATION 800  // Microstepping resolution
 
-#define X_DELTA_SPEED 	16	//16     //18 valore massimo, anche 20, la coppia si abbassa, limite per perdita steps in accelerazione
-#define Y_DELTA_SPEED 	9	//10     //asse y ha inerzia maggiore, mi aspetto un valore di accelerazione inferiore
+/* Acceleration settings */
+#define X_DELTA_SPEED 16        // Max acceleration step for X (higher = faster, but risk of step loss)
+#define Y_DELTA_SPEED 9         // Lower acceleration for Y due to higher inertia
 
-#define X_CALIBRATED_MIN_SPEED 2000		//2000
-#define X_CALIBRATED_MAX_SPEED 26000	//26000
-#define Y_CALIBRATED_MIN_SPEED 1000		//1000
-#define Y_CALIBRATED_MAX_SPEED 17000	//18000
+/* Calibrated speed limits */
+#define X_CALIBRATED_MIN_SPEED 2000
+#define X_CALIBRATED_MAX_SPEED 26000
+#define Y_CALIBRATED_MIN_SPEED 1000
+#define Y_CALIBRATED_MAX_SPEED 17000
 
-void run_stepper_timer(int xs, int ys, int x_speed_min /*in steps al secondo*/, int y_speed_min, int x_speed_max, int y_speed_max);
+/* Timer-based stepper movement function */
+void run_stepper_timer(int xs, int ys, int x_speed_min /* in steps per second */, int y_speed_min, int x_speed_max, int y_speed_max);
 
 #endif

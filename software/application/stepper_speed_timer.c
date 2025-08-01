@@ -1,10 +1,9 @@
 #include "stepper_speed_timer.h"
 
-//funzione velocità steppers
-//altre funzioni utili, tipo per la calibrazione o lo zeroo che utilizzano queste funzioni, includeranno questa libreria
-//obiettivo: impostare velocità come steps al secondo
-//valutare mm al secondo
-//riabilitare gli interrupt
+// This file defines stepper speed functions.
+// Other utility functions (e.g., for calibration or zeroing) that use these routines will include this library.
+// Goal: set speed as steps per second (consider using mm/s).
+// Reactivate interrupts when needed.
 
 #include "LPC17xx.h"
 
@@ -12,16 +11,15 @@ typedef struct {
     int total_steps;
     int previous_count;
     int remaining_steps;
-    int current_speed;       // steps per second, current speed = minumun speed at the beginning
+    int current_speed;       // Steps per second, initialized to min speed
     int delta_speed;
-    int min_speed;           //steps per second
-    int max_speed;           //step per second
-    int accel_steps;         //steps taken during acceleration
-    volatile int phase;               //imp. il volatile, impedisce ottimizzazioni sopratutto in questa che è una variabile aggiornata da una isr! //0=accel, 1=cruise, 2=decel
+    int min_speed;           // Steps per second
+    int max_speed;           // Steps per second
+    int accel_steps;         // Steps during acceleration
+    volatile int phase;      // Must be volatile: used in ISR. 0=accel, 1=cruise, 2=decel, 4=done
     int update_speed_flag;
 } ax_state;
 
-//creo i due assi
 ax_state x_ax;
 ax_state y_ax;
 
@@ -31,24 +29,21 @@ int done_y = 0;
 int tim0_update = 0;
 int tim1_update = 0;
 
-void set_directions(int xs, int ys) {		
-    if(xs > 0)
-    {
-        GPIO_SetValue(X_PORT, X_DIR_PIN);    // x dir
-
-    }
+void set_directions(int xs, int ys) {
+    if (xs > 0)
+        GPIO_SetValue(X_PORT, X_DIR_PIN);   // X direction
     else
-    {
         GPIO_ClearValue(X_PORT, X_DIR_PIN);
-    }
-    if(ys < 0)
-        GPIO_SetValue(Y_PORT, Y_DIR_PIN);    // y dir
+
+    if (ys < 0)
+        GPIO_SetValue(Y_PORT, Y_DIR_PIN);   // Y direction
     else
         GPIO_ClearValue(Y_PORT, Y_DIR_PIN);
 }
 
-void init_timer0(uint32_t frequency_hz) {           //frequenza con cui genera interrupts, quindi steps per secondo
-    uint32_t pclk = SystemCoreClock / 4;            //Tipico per LPC1768, 100 / 4 = 25 MHz
+void init_timer0(uint32_t frequency_hz) {
+    // Frequency of interrupts = steps per second
+    uint32_t pclk = SystemCoreClock / 4;           // LPC1768 typical: 100 MHz / 4 = 25 MHz
     uint32_t match_value = pclk / frequency_hz;
 
     LPC_TIM0->MR0 = match_value;
@@ -67,196 +62,150 @@ void init_timer1(uint32_t frequency_hz) {
     NVIC_EnableIRQ(TIMER1_IRQn);
 }
 
-void run_stepper_timer(int xs, int ys, int x_speed_min, int y_speed_min, int x_speed_max, int y_speed_max) {       //speed_min, max ecc. could all be set as constant, but this way it is possible to calibrate
-    
+void run_stepper_timer(int xs, int ys, int x_speed_min, int y_speed_min, int x_speed_max, int y_speed_max) {
+    // Start a move with acceleration, cruise, and deceleration phases.
+    // Speed parameters could be constants, but using arguments allows calibration.
+
     set_directions(xs, ys);
 
-    //two axis - X AXIS SETUP
-    x_ax.total_steps = abs(xs);
+    // --- X AXIS SETUP ---
+    x_ax.total_steps     = abs(xs);
     x_ax.remaining_steps = abs(xs);
-    x_ax.current_speed = x_speed_min;
-    x_ax.min_speed = x_speed_min;
-    x_ax.max_speed = x_speed_max;
-    x_ax.delta_speed = X_DELTA_SPEED;
-    x_ax.previous_count = 0;
-    x_ax.phase = 0;
-    x_ax.accel_steps = 0;
+    x_ax.current_speed   = x_speed_min;
+    x_ax.min_speed       = x_speed_min;
+    x_ax.max_speed       = x_speed_max;
+    x_ax.delta_speed     = X_DELTA_SPEED;
+    x_ax.previous_count  = 0;
+    x_ax.phase           = 0;
+    x_ax.accel_steps     = 0;
     x_ax.update_speed_flag = 0;
 
-    // Y AXIS SETUP
-    y_ax.total_steps = abs(ys);
+    // --- Y AXIS SETUP ---
+    y_ax.total_steps     = abs(ys);
     y_ax.remaining_steps = abs(ys);
-    y_ax.current_speed = y_speed_min;
-    y_ax.min_speed = y_speed_min;
-    y_ax.max_speed = y_speed_max;
-    y_ax.delta_speed = Y_DELTA_SPEED;
-    y_ax.previous_count = 0;
-    y_ax.phase = 0;     //0 = accelerazione, 1 = cruise, 2 = decelerazione
-    y_ax.accel_steps = 0;
+    y_ax.current_speed   = y_speed_min;
+    y_ax.min_speed       = y_speed_min;
+    y_ax.max_speed       = y_speed_max;
+    y_ax.delta_speed     = Y_DELTA_SPEED;
+    y_ax.previous_count  = 0;
+    y_ax.phase           = 0;
+    y_ax.accel_steps     = 0;
     y_ax.update_speed_flag = 0;
 
-    //calcoli per fase di accelerazione e decelerazione X AXIS
-    int x_acceleration_steps = (x_ax.max_speed - x_ax.min_speed)/X_DELTA_SPEED;
-    
-    //caso accelerazione non completa per X     
-    if( x_ax.total_steps <= (x_acceleration_steps * 2) )
-    {
-        x_ax.accel_steps = x_ax.total_steps / 2;        //importante, se non arrivo alla velocità massima
-        //ma allora posso aggiornare direttamente anche la v max
-        x_ax.max_speed = x_ax.min_speed + (X_DELTA_SPEED * x_ax.accel_steps);      //FIXED: correct calculation
-    }
-    else
-    {
+    // --- X acceleration calculations ---
+    int x_acceleration_steps = (x_ax.max_speed - x_ax.min_speed) / X_DELTA_SPEED;
+
+    // Case: Not enough distance to reach max speed
+    if (x_ax.total_steps <= (x_acceleration_steps * 2)) {
+        x_ax.accel_steps = x_ax.total_steps / 2;
+        x_ax.max_speed = x_ax.min_speed + (X_DELTA_SPEED * x_ax.accel_steps);
+    } else {
         x_ax.accel_steps = x_acceleration_steps;
     }
 
-    //calcoli per fase di accelerazione e decelerazione Y AXIS
-    int y_acceleration_steps = (y_ax.max_speed - y_ax.min_speed)/Y_DELTA_SPEED;
-    
-    //caso accelerazione non completa per Y     
-    if( y_ax.total_steps <= (y_acceleration_steps * 2) )
-    {
-        y_ax.accel_steps = y_ax.total_steps / 2;        //importante, se non arrivo alla velocità massima
-        //ma allora posso aggiornare direttamente anche la v max, poi la uso come condizione
-        y_ax.max_speed = y_ax.min_speed + (Y_DELTA_SPEED * y_ax.accel_steps);      //FIXED: correct calculation
-    }
-    else
-    {
+    // --- Y acceleration calculations ---
+    int y_acceleration_steps = (y_ax.max_speed - y_ax.min_speed) / Y_DELTA_SPEED;
+
+    if (y_ax.total_steps <= (y_acceleration_steps * 2)) {
+        y_ax.accel_steps = y_ax.total_steps / 2;
+        y_ax.max_speed = y_ax.min_speed + (Y_DELTA_SPEED * y_ax.accel_steps);
+    } else {
         y_ax.accel_steps = y_acceleration_steps;
     }
 
-    /*
-    //print parametri calcolati prima di partire
-    _DBG("x_ax.max_speed = ");_DBD32( x_speed_max );_DBG("   x_ax.min_speed = ");_DBD32( x_ax.min_speed );_DBG("   x_ax.total_steps = ");_DBD32( x_ax.total_steps );_DBG("\n");
-    _DBG("x_acceleration_steps = ");_DBD32( x_acceleration_steps );_DBG("   x_ax.max_speed = ");_DBD32( x_ax.max_speed );_DBG("\n");
-    _DBG("fase iniziale =  ");_DBD32( x_ax.phase );_DBG("\n");
-    */
-
-    tim0_update = x_ax.current_speed;       
+    tim0_update = x_ax.current_speed;
     tim1_update = y_ax.current_speed;
 
-    //imposta steps al secondo, è una frequenza in Hz. in pratica se voglio fare una rotazione al secondo sono 800 Hz, non dovrei avere problemi di velocità minima, basta una frequenza molto bassa
-    init_timer0( x_ax.current_speed );     
-    init_timer1( y_ax.current_speed );
+    // Set steps per second (Hz) for both timers
+    init_timer0(x_ax.current_speed);
+    init_timer1(y_ax.current_speed);
 
-
-    //_DBG("Start while in run\n");
-
-    while( x_ax.phase != 4 || y_ax.phase != 4 )
-    {
-        //non ottimizzato grazie a volatile
+    // Wait until both axes complete their motion
+    while (x_ax.phase != 4 || y_ax.phase != 4) {
+        // Do nothing; volatile flags will be updated by the ISRs
     }
-        
-    //_DBG("End while in run\n");
 }
 
-// ASSE X
-void TIMER0_IRQHandler(void) {     
-    //chiamata isr del timer
-    //NVIC_DisableIRQ(TIMER0_IRQn);
-
-    if (LPC_TIM0->IR & 1) 
-    {
+// --- TIMER0 ISR (X Axis) ---
+void TIMER0_IRQHandler(void) {
+    if (LPC_TIM0->IR & 1) {
         LPC_TIM0->IR = 1;  // Clear interrupt
-        
-        if ( x_ax.phase != 4 ) 
-        {
-            GPIO_SetValue(X_PORT, X_PULSE_PIN);  // Impulso HIGH
-            for( volatile int i = 0; i < 50; i++ );            // Piccolo delay per durata HIGH → anche 5 µs bastano
-            GPIO_ClearValue(X_PORT, X_PULSE_PIN);// Impulso LOW
+
+        if (x_ax.phase != 4) {
+            GPIO_SetValue(X_PORT, X_PULSE_PIN);     // Pulse HIGH
+            for (volatile int i = 0; i < 50; i++);   // Short delay (≥5 µs)
+            GPIO_ClearValue(X_PORT, X_PULSE_PIN);    // Pulse LOW
             x_ax.remaining_steps--;
- 
-            //acceleration
-            
-            if( x_ax.current_speed < x_ax.max_speed && x_ax.phase == 0 /*imp., non basta velocità minore di quella massima ma serve ance essere in fase di accelerazione*/ )       //ogni step aumento la velocità fino alla massima, quindi per capire il numero di step dell'accelerazione mi basta fare (max_speed - min_speed)/ delta_speed
-            {
-                x_ax.current_speed = x_ax.current_speed + X_DELTA_SPEED;
+
+            // Acceleration
+            if (x_ax.current_speed < x_ax.max_speed && x_ax.phase == 0) {
+                x_ax.current_speed += X_DELTA_SPEED;
                 tim0_update = x_ax.current_speed;
-            }
-            else if( x_ax.phase == 0 )
-            {
-                //_DBG("Start x cruise\n"); //evitare tali print che inseriscono scatti nell'esecuzione della rotazione, molto evidenti
-                x_ax.phase = 1;     //passo a cruise
+            } else if (x_ax.phase == 0) {
+                x_ax.phase = 1;  // Switch to cruise
             }
 
-            //cruise
-            if( x_ax.phase == 1 && x_ax.remaining_steps <= x_ax.accel_steps )  // FIXED: == instead of =
-            {
-                //_DBG("Start x deceleration\n");
+            // Cruise → deceleration
+            if (x_ax.phase == 1 && x_ax.remaining_steps <= x_ax.accel_steps) {
                 x_ax.phase = 2;
             }
 
-            //deceleration
-            if(  x_ax.current_speed > x_ax.min_speed && x_ax.phase == 2 )       //fase di decelerazione
-            {
+            // Deceleration
+            if (x_ax.current_speed > x_ax.min_speed && x_ax.phase == 2) {
                 x_ax.current_speed -= X_DELTA_SPEED;
                 tim0_update = x_ax.current_speed;
             }
 
-            //stato 4, ovvero asse completo
-            if( x_ax.remaining_steps <= 0 ) 
-            {
+            // End of motion
+            if (x_ax.remaining_steps <= 0) {
                 x_ax.phase = 4;
-                //x_end_flag = 1;
-                //_DBG("Finish x_ax\n");
-                //_DBG("x phase ");_DBD32(x_ax.phase);_DBG("---\n");
-                //_DBG("y_phase ");_DBD32(y_ax.phase);_DBG("---\n");
-                //LPC_TIM0->TCR = 0;  //Disabilita timer
             }
         }
     }
 
     if (tim0_update < 1) tim0_update = 1;
-
-    LPC_TIM0->MR0 = (SystemCoreClock / 4) / tim0_update ;
-
-    NVIC_ClearPendingIRQ(TIMER0_IRQn);  // Pulizia eventuali pending
-    //NVIC_EnableIRQ(TIMER0_IRQn);
+    LPC_TIM0->MR0 = (SystemCoreClock / 4) / tim0_update;
+    NVIC_ClearPendingIRQ(TIMER0_IRQn);
 }
 
-// ASSE Y
+// --- TIMER1 ISR (Y Axis) ---
 void TIMER1_IRQHandler(void) {
     if (LPC_TIM1->IR & 1) {
         LPC_TIM1->IR = 1;  // Clear interrupt
 
         if (y_ax.phase != 4) {
-            GPIO_SetValue(Y_PORT, Y_PULSE_PIN);  // Impulso HIGH
-            for (volatile int i = 0; i < 50; i++); // piccolo delay
-            GPIO_ClearValue(Y_PORT, Y_PULSE_PIN);  // Impulso LOW
+            GPIO_SetValue(Y_PORT, Y_PULSE_PIN);     // Pulse HIGH
+            for (volatile int i = 0; i < 50; i++);   // Short delay
+            GPIO_ClearValue(Y_PORT, Y_PULSE_PIN);    // Pulse LOW
             y_ax.remaining_steps--;
 
-            // Accelerazione
+            // Acceleration
             if (y_ax.current_speed < y_ax.max_speed && y_ax.phase == 0) {
                 y_ax.current_speed += Y_DELTA_SPEED;
                 tim1_update = y_ax.current_speed;
             } else if (y_ax.phase == 0) {
-                y_ax.phase = 1; // cruise
+                y_ax.phase = 1;  // Switch to cruise
             }
 
-            // Cruise → decelerazione
+            // Cruise → deceleration
             if (y_ax.phase == 1 && y_ax.remaining_steps <= y_ax.accel_steps) {
                 y_ax.phase = 2;
             }
 
-            // Decelerazione
+            // Deceleration
             if (y_ax.current_speed > y_ax.min_speed && y_ax.phase == 2) {
                 y_ax.current_speed -= Y_DELTA_SPEED;
                 tim1_update = y_ax.current_speed;
             }
 
-            // Fine movimento
+            // End of motion
             if (y_ax.remaining_steps <= 0) {
                 y_ax.phase = 4;
-                //_DBG("Finish y_ax\n");
-                //_DBG("x phase "); _DBD32(x_ax.phase); _DBG("\n");
-                //_DBG("y phase "); _DBD32(y_ax.phase); _DBG("\n");
-                // LPC_TIM1->TCR = 0;  // Disabilita timer, se vuoi
             }
         }
     }
 
     if (tim1_update < 1) tim1_update = 1;
     LPC_TIM1->MR0 = (SystemCoreClock / 4) / tim1_update;
-
     NVIC_ClearPendingIRQ(TIMER1_IRQn);
 }

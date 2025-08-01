@@ -6,12 +6,11 @@
 
 #include "smu.h"
 
-//implementare ciò che fa effettivamente, utilizando le librerie, anche elementi come raggiungimento zero o calibrazione
-//idealmente una funzione chiamata dal main. Serve un header?
-//quindi, di fatto, la stepper task
+// Implements core routine logic using helper libraries (e.g., calibration, zeroing)
+// Ideally called from main — effectively a stepper motor task
 
-int path_8[NUMBER_OF_POINTS][2] = {		//utilizzata, in mm, per nuovo zero su parte superiore
-                                        //verificate problemi se 0, 0 iniziale
+int path_8[NUMBER_OF_POINTS][2] = {     // Used in mm, for new top zeroing
+                                        // Watch out for issues if starting at (0,0)
     { 0, 0 },
     { -30, 0 },
     { -60, 0 },
@@ -26,30 +25,29 @@ int path_8[NUMBER_OF_POINTS][2] = {		//utilizzata, in mm, per nuovo zero su part
     { -60, 181 },
 };
 
-void routine_2()		//per test, momentaneo
+void routine_2()        // Temporary test routine
 {
-		_DBG("Routine_2\n");
+        _DBG("Routine_2\n");
 }
 
-void routine_3()        //test nuova funzione velocità stepper
+void routine_3()        // Test for stepper speed function
 {
     _DBG("Stepper speed function test\n");
 
 }
 
-void routine_4()        //test funzione stepper con timers
+void routine_4()        // Test stepper function using timers
 {
     _DBG("Stepper speed function test - routine_4()\n");
     constant_speed_calibration();
 
-
     int steps = 4500;
 
-    int x_min = 2000;		//2000 valore calibrato asse x
-    int x_max = 26000;		//28000 limite per perdita steps asse x
+    int x_min = 2000;        // Calibrated min speed for X-axis
+    int x_max = 26000;       // X-axis step loss limit
     int y_min = 1000;
-    int y_max = 18000;		//20000;
-    
+    int y_max = 18000;       // Max speed Y-axis
+
     while( 1 )
     {
         _DBG("start first direction\n");
@@ -65,27 +63,22 @@ void routine_4()        //test funzione stepper con timers
 
         _DBG("end 2\n");
         for( volatile int i = 0; i < 300; i++ );
-    
     }
 }
 
-void routine_5()        //esecuzione path con funzione timer
+void routine_5()        // Execute path using timer-based stepper control
 {
-    //calibrazione
     _DBG("Path execution with timers - routine_5()\n");
-    _DBG("Calibrazione/n");
+    _DBG("Calibration\n");
     constant_speed_calibration();
 
-    //raggiungimento posizione iniziale
-    _DBG("Raggiungimento zero/n");
-    //run_stepper_timer( X_ZERO_STEPS, -Y_ZERO_STEPS, X_CALIBRATED_MIN_SPEED, Y_CALIBRATED_MIN_SPEED, X_CALIBRATED_MAX_SPEED, Y_CALIBRATED_MAX_SPEED );
+    _DBG("Reaching zero\n");
     reach_zero( X_ZERO_STEPS, Y_ZERO_STEPS );
 
-    //ìnizio routine di test
     int count_to_calibrate = 0;
 
     while( 1 ) {
-        if( count_to_calibrate >= 5 )       //calibrazione ogni 5 cicli
+        if( count_to_calibrate >= 5 )       // Recalibrate every 5 cycles
         {
             constant_speed_calibration();
             reach_zero( X_ZERO_STEPS, Y_ZERO_STEPS );
@@ -98,129 +91,92 @@ void routine_5()        //esecuzione path con funzione timer
     }
 }
 
-void routine_6()        //per calibrazione zero
+void routine_6()        // Perform zero calibration via calibration + manual input
 {
     constant_speed_calibration();
     calibrate_zero();
 }
 
-void routine_7()
+void routine_7()        // Check for step loss on Y-axis
 {
-    //calibrate_zero();
-    _DBG("Verifica perdita steps asse Y/n");
+    _DBG("Verifying Y-axis step loss\n");
     constant_speed_calibration();
 
-    //raggiungimento posizione iniziale
-    _DBG("Raggiungimento zero/n");
-    //run_stepper_timer( X_ZERO_STEPS, Y_ZERO_STEPS, X_CALIBRATED_MIN_SPEED, Y_CALIBRATED_MIN_SPEED, X_CALIBRATED_MAX_SPEED, Y_CALIBRATED_MAX_SPEED );
+    _DBG("Reaching zero\n");
     reach_zero( X_ZERO_STEPS, Y_ZERO_STEPS );
 
-    //for( volatile int i = 0; i < 50000000; i++ );
-
-    //ìnizio routine di test
     for( int i = 0; i < 10; i++ ) {
         reach_point_mm( 0, 200 );
-        //for( volatile int i = 0; i < 100000; i++ );
         reach_point_mm( 0, 0 );
-        //for( volatile int i = 0; i < 100000; i++ );
     }
-
-    //for( volatile int i = 0; i < 50000000; i++ );
 }
 
-void routine_8()        //esecuzione path con funzione timer
+void routine_8()        // Execute path in loop with timer control
 {
-    //calibrazione
-    _DBG("Calibrazione/n");
+    _DBG("Calibration\n");
     constant_speed_calibration();
 
-    //raggiungimento posizione iniziale
-    _DBG("Raggiungimento zero/n");
-    //run_stepper_timer( X_ZERO_STEPS, -Y_ZERO_STEPS, X_CALIBRATED_MIN_SPEED, Y_CALIBRATED_MIN_SPEED, X_CALIBRATED_MAX_SPEED, Y_CALIBRATED_MAX_SPEED );
+    _DBG("Reaching zero\n");
     reach_zero( X_ZERO_STEPS, Y_ZERO_STEPS );
 
-    //ìnizio routine di test
     for( int i = 0; i < 30; i++ ) {
         execute_path( path_8 );
     }
     while( 1 ){}
 }
 
-void routine_9()        //esecuzione path con funzione timer
+void routine_9()        // Execute path once with timer control
 {
-    //calibrazione
-    _DBG("Calibrazione/n");
+    _DBG("Calibration\n");
     constant_speed_calibration();
 
-    //raggiungimento posizione iniziale
-    _DBG("Raggiungimento zero/n");
-    //run_stepper_timer( X_ZERO_STEPS, -Y_ZERO_STEPS, X_CALIBRATED_MIN_SPEED, Y_CALIBRATED_MIN_SPEED, X_CALIBRATED_MAX_SPEED, Y_CALIBRATED_MAX_SPEED );
+    _DBG("Reaching zero\n");
     reach_zero( X_ZERO_STEPS, Y_ZERO_STEPS );
 
-    //ìnizio routine di test
     execute_path( path_8 );
 }
 
-
-void Console_Task( void *pvParameters ) // di default chiama routine_4
+void Console_Task( void *pvParameters ) // Default: runs routine_5
 {
-    // _DBG("Consose_Task")
     (void)pvParameters;
 
     char cmd[128];
     uint32_t cmd_pos = 0;
 
-    // Infinite loop
     while (1)
     {
-        routine_5(); // di default
+        routine_5(); // Default behavior
 
         if (cmd_pos >= sizeof(cmd) - 1)
         {
-            // The command is too long
-            cmd_pos = 0;
+            cmd_pos = 0; // Reset if too long
         }
 
-        // Read
         cmd[cmd_pos] = _DG;
 
-        // New char
         if (cmd[cmd_pos] != 0)
         {
-            // New line, parse it
             if ((cmd[cmd_pos] == 0x0d) || (cmd[cmd_pos] == 0x0a))
             {
-                // Add the end of the string
-                cmd[cmd_pos] = 0;
+                cmd[cmd_pos] = 0;  // Null terminate
 
-                // Store the "zero" position
-                // Note: 'cmd == strstr(cmd, "...")' is almost certainly
-                // not what you want. strstr returns a pointer to the first
-                // occurrence of the substring. To check if a string *starts*
-                // with a substring, you typically compare the returned pointer
-                // with 'cmd' (the beginning of the string). A more robust
-                // approach for exact command matching is 'strcmp'.
-                // If you want to check for a prefix, 'strstr(cmd, "pos") == cmd' works.
-                // Assuming you want to check if the string *starts* with the command.
+                // Parse command by prefix
                 if (strstr(cmd, "pos") == cmd)
                 {
                     calibrate_zero();
                 }
-                else if (strstr(cmd, "zero") == cmd) // andare a punto iniziale dello schermo
+                else if (strstr(cmd, "zero") == cmd)
                 {
                     _DBG("Going to zero\n");
                 }
-                // Move to the zero position
                 else if (strstr(cmd, "reset") == cmd)
                 {
                     _DBG("Going to home\n");
                     constant_speed_calibration();
                 }
-                // Execute the path array
                 else if (strstr(cmd, "path") == cmd)
                 {
                     _DBG("execute path");
-
                 }
                 else if (strstr(cmd, "k") == cmd)
                 {
@@ -237,34 +193,21 @@ void Console_Task( void *pvParameters ) // di default chiama routine_4
                 else if (strstr(cmd, "y") == cmd)
                 {
                     _DBG("");
-
                 }
                 else if (strstr(cmd, "m") == cmd)
                 {
                     is_running = 0;
 
                     int vals[3];
-                    char *sstr = cmd + 1; // Start parsing after 'm'
-                    uint32_t temp_cmd_pos = 1; // Keep track of position for search_chars_moving_and_skipping
+                    char *sstr = cmd + 1;
+                    uint32_t temp_cmd_pos = 1;
 
                     for (int vv = 0; vv < 3; vv++)
                     {
-                        // Assuming atoi_8 is similar to atoi and handles parsing numbers.
-                        // You need to ensure sstr is updated correctly after each atoi_8 call
-                        // to point to the next number. The original code's `search_chars_moving_and_skipping`
-                        // is problematic because `cmd_pos` is the overall buffer position,
-                        // not relative to `sstr`.
-                        // A safer way is to use sscanf or manual parsing.
-                        // For demonstration, adapting to the original intent:
                         vals[vv] = atoi_8(sstr);
-                        // This function needs to advance `sstr` to the next number's start.
-                        // The original `search_chars_moving_and_skipping` uses `cmd_pos`,
-                        // which is for the overall command buffer fill level, not parsing `sstr`.
-                        // A more standard C way would be to find the next space or end of string.
-                        // Example (conceptual, adjust based on `atoi_8` and `search_chars_moving_and_skipping` exact behavior):
-                        sstr = strchr(sstr, ' '); // Find next space
-                        if (sstr) sstr++; // Move past the space
-                        else break; // No more spaces, no more numbers
+                        sstr = strchr(sstr, ' ');
+                        if (sstr) sstr++;
+                        else break;
                     }
 
                     _DBG("Datain: ");
@@ -272,25 +215,15 @@ void Console_Task( void *pvParameters ) // di default chiama routine_4
                     _DBD32(vals[1]); _DBG(", ");
                     _DBD32(vals[2]); _DBG("\n");
 
-                    //run(vals[0], vals[1], vals[2]);
-
                     is_running = 3;
                 }
-                else
-                {
-                    // routine_5(); // If no command matches, what happens?
-                }
 
-                cmd_pos = 0; // Reset command buffer after processing
+                cmd_pos = 0;
             }
-            // Store the digit
             else
             {
-                // Echo the character for user feedback (optional)
-                //_PUTC(cmd[cmd_pos]);
                 cmd_pos++;
             }
         }
     }
 }
-

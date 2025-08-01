@@ -1,18 +1,18 @@
-//screen tester machine running rutine
+// Screen tester machine execution routines
 #ifndef SCREEN_TESTER_ROUTINE_H
-//per non includere più volte, se chiamata più volte
 #define SCREEN_TESTER_ROUTINE_H
 
-//zero
-#define X_ZERO_STEPS 3890     //nuova calibrazione  "Zero steps count: 3950, 830,""
-#define Y_ZERO_STEPS 840       
+// Prevent multiple inclusion
+// Define X and Y zeroing positions (step counts)
+#define X_ZERO_STEPS 3890    // Calibrated X-axis zero: "Zero steps count: 3950, 830"
+#define Y_ZERO_STEPS 840     // Calibrated Y-axis zero
 
-void routine_1();
+void routine_1();       // Reserved or unused
 
-void routine_2();       //per test inputs
+void routine_2();       // Input test routine
 
-void routine_3();       //test funzione run_xy
+void routine_3();       // Test the run_xy() stepper function
 
-void Console_Task( void *pvParameters );
+void Console_Task(void *pvParameters);  // FreeRTOS console task
 
 #endif

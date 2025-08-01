@@ -1,11 +1,11 @@
-
 #ifndef STEPPER_LIBRARY_H
 #define STEPPER_LIBRARY_H
 
-#ifdef  STEPPER_CONTROL_H
+// External linkage macro for task declaration
+#ifdef STEPPER_CONTROL_H
 #define ISEXTCONTROL_TASK
 #else
-#define	ISEXTCONTROL_TASK extern
+#define ISEXTCONTROL_TASK extern
 #endif
 
 // MCU includes
@@ -18,27 +18,34 @@
 #include "lpc17xx_wdt.h"
 #include "debug_frmwrk.h"
 
-// Scheduler includes
+// FreeRTOS includes
 #include "FreeRTOS.h"
 #include "task.h"
 #include "croutine.h"
 #include "queue.h"
 #include "systick.h"
+
+// Project-specific includes
 #include "io.h"
 #include "tachimetrica.h"
 #include "eeprom_internal.h"
 
-//#include "smu.h"
-#define TIMEOUT_TRAFFICO_CANBUS_MS	(2000) // 2 secondi
+// Timeout for CAN bus traffic loss detection (in milliseconds)
+#define TIMEOUT_TRAFFICO_CANBUS_MS (2000) // 2 seconds
 
-ISEXTCONTROL_TASK void Control_Task( void * pvParameters );
+// Task declarations
+ISEXTCONTROL_TASK void Control_Task(void *pvParameters);
 
+// Debug print helper
 void _PRINT(int x, const char *m);
 
+// Shared control flag
 volatile int is_running;
 
-void Stepper_Task( void *pvParameters );
+// Stepper motor control task
+void Stepper_Task(void *pvParameters);
 
-void calibrate_zero( void );
+// Interactive zero-point calibration
+void calibrate_zero(void);
 
-#endif	//STEPPER_LIBRARY_H
+#endif // STEPPER_LIBRARY_H
