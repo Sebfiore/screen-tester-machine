@@ -1,6 +1,6 @@
 # Screen Tester Machine  
 
-![System overview: Electrical subsystem with TB6600 drivers and LPC1768 control board.](electrical/images/IMG_3673.jpeg)
+![System overview](images/IMG_3661.jpeg)
 
 ## Overview
 
@@ -17,7 +17,7 @@ The design covers all major functional areas of a mechatronic system:
 
 Ultimately, the core focus of the project is system integration: all components were developed independently, with continuous consideration of their role within the complete system. This is arguably the most critical and complex aspect of any mechatronic design.
 
-![System overview](images/IMG_3661.jpeg)
+![System overview: Electrical subsystem with TB6600 drivers and LPC1768 control board.](electrical/images/IMG_3673.jpeg)
 
 ## The Machine
 
