@@ -1,84 +1,52 @@
 # Screen Tester Machine  
-*University Project Summary*
 
 ![System overview: Electrical subsystem with TB6600 drivers and LPC1768 control board.](electrical/images/IMG_3673.jpeg)
 
 ## Overview
 
-The Screen Tester Machine is an interdisciplinary mechatronics university project that automates validation of capacitive touch displays by tightly integrating mechanics, electronics, and embedded software into a coherent control system. Precise multi-axis motion (via stepper motors and TB6600 drivers), compliant touch interfaces, and discrete actuation (solenoid taps) are coordinated in real time by firmware on an LPC1768 controller, with sensing (multiplexed endstops) providing the necessary feedback for safe, repeatable operation. This closed-loop system embodies core mechatronic challenges—synchronizing motion and force, adapting to mechanical tolerances making it both a testbed and demonstration of practical automation, control, and system-level design.
+This is an interdisciplinary mechatronics project developed during an internship in the validation department of an Italian electronics company, in collaboration with the University of Padua. It automates the testing of capacitive touch displays by integrating mechanical, electronic, and embedded software components into a unified system.
 
+The platform features multi-axis motion control using stepper motors and custom firmware running on an LPC1768 microcontroller.  
+The firmware, written in embedded C, manages both the working routine and low-level stepper motor control.
 
-## Table of Contents
+The design covers all major functional areas of a mechatronic system:
 
-- [Features](#features)  
-- [Subsystems](#subsystems)  
-  - [Mechanical](#mechanical)  
-  - [Electrical](#electrical)  
-  - [Software / Firmware](#software--firmware)  
-- [Architecture Summary](#architecture-summary)  
-- [Contributors](#contributors)  
-- [License](#license)  
+- **Hardware**: Starting from a modified commercial multi-axis platform, the entire structure was redesigned using 3D models and assembled manually. Two commercial machines were evaluated—a 3D printer and a laser cutting machine. The latter was selected for the final build.
+- **Electronics**: Custom drive electronics were developed to ensure reliability and flexibility, replacing the original laser machine’s control board. Two stepper drivers were interfaced with the LPC1768 controller.
+- **Software**: Both machine routine logic and stepper motor control functions were developed. Special focus was placed on motor speed control. The final version supports a trapezoidal speed profile, with other options also available.
 
-## Features
+Ultimately, the core focus of the project is system integration: all components were developed independently, with continuous consideration of their role within the complete system. This is arguably the most critical and complex aspect of any mechatronic design.
 
-- Precise dual-axis actuation via stepper motors  
-- Modular touch heads (conceptual and 3D-printed realized versions)  
-- Compliant mechanisms for controlled force transfer  
-- Centralized control using an LPC1768-based custom board  
-- Stepper driving through TB6600 modules  
-- Multiplexed endstop sensing  
-- Solenoid-based discrete tap actuation with protection  
+![System overview](images/IMG_3661.jpeg)
+
+## The Machine
+
+The machine automates the validation process of capacitive touch displays after production. Each display normally requires manual testing—touching a series of points to verify functionality. This machine performs the validation process automatically.  
+Future versions aim to further optimize validation by incorporating additional phases such as display programming and automatic color validation.
 
 ## Subsystems
 
 ### Mechanical
 
-Detailed design and evolution of the mechanical interface, including:  
-- Complete system assembly  
-- Two versions of the touch head (conceptual sketch and 3D-printed real version)  
-- Two versions of compliant mechanisms for force modulation and alignment tolerance  
+The `mechanical` folder contains descriptions of the system assemblies. Both 3D-printed and machined parts were used. The commercial laser cutter was modified and integrated into an aluminum extrusion frame. All components were designed in 3D prior to assembly.
 
-See [`mechanical/README.md`](mechanical/README.md) for full description, design rationale, and validation strategy.
+A key innovation was the development of a compliant mechanism for the touch interface. The touch tip had to press against the display and then release—this was achieved using a solenoid acting on a 3D-printed compliant structure. This solution provided the required flexibility and tight tolerances in a single part.  
+The previous traditional system relied on a spring and an aluminum guide, which were more expensive to manufacture and less precise.
+
+![Compliant touch mechanism](images/IMG_3694.jpeg)
 
 ### Electrical
 
-Handles actuation signaling, sensing, and power distribution:  
+This subsystem handles actuation signaling, sensing, and power distribution:
 - Dual TB6600 stepper driver control  
-- Solenoid drive with flyback protection  
+- Solenoid actuation with flyback protection  
 - Software-selectable endstop inputs via multiplexer  
-- Power domains (24V, 12V, 5V) coordinated by the LPC1768 controller  
-
-See [`electrical/README.md`](electrical/README.md) for subsystem architecture and component details.
+- Multiple power domains (24V, 12V, 5V) managed by the LPC1768 controller  
 
 ### Software / Firmware
 
-The embedded software is written in **C** and runs on a custom LPC1768 (ARM Cortex-M3) controller. It provides real-time orchestration of motion, touch actuation, sensing, and test sequencing for touchscreen validation.
-
-#### Core Responsibilities
-- **Motion Control:** Precise dual-axis stepper driving with trapezoidal velocity profiles (accel/constant/decel), coordinated gestures, and endstop-aware corrections. Timer interrupts and priority handling ensure sub-millisecond pulse accuracy.  
-- **Test Sequence Engine:** Executes scripted routines (moves, taps, waits, conditional logic) with timing control, state persistence, and safe recovery on faults.  
-- **Sensing & Safety:** Multiplexed endstop sampling, limit enforcement and command validation to prevent mechanical or electrical misuse.  
-
-#### Implementation Highlights
-- Written in embedded C with a modular architecture (motion control, parser, test engine, hardware abstraction).  
-- Uses hardware timers, circular buffers, and interrupt-driven design to balance timing precision with communication reliability.  
+The embedded software is written in **C** and runs on a custom LPC1768 (ARM Cortex-M3) controller. It provides real-time orchestration of motion, touch actuation, sensing, and test sequencing for touchscreen validation. See the dedicated section for more detail.
 
 #### Outcomes
-- Achieved repeatable positioning (±0.1mm after calibration) and low command latency (<10ms typical).  
-- Designed for extensibility: new test patterns, conditional behaviors, and additional sensors can be integrated without rewriting core logic.  
-- Educationally demonstrates real-time embedded programming, state-machine design, and system integration in a constrained environment.
-
-
-## Architecture Summary
-
-The system is arranged in layers:
-
-1. **Mechanical layer** provides accurate positioning and compliant touch interface.  
-2. **Electrical/control layer** (LPC1768) interprets test sequences, drives actuators (steppers and solenoid), and reads limit conditions.  
-3. **Touch interaction layer** (touch heads + compliant mechanism) mediates contact with the device under test to emulate realistic touch events.  
-
-Coordination among layers enables automated, repeatable test routines for capacitive displays.
-
-## License
-
-This project is licensed under the MIT License. See the [LICENSE](./LICENSE) file for details.
+- Designed for extensibility: new test patterns, conditional logic, and additional sensors can be integrated without altering the core logic  
+- Demonstrates real-time embedded programming, state-machine design, and system-level integration under resource constraints
